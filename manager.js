@@ -16,7 +16,7 @@ module.exports =  function(RED) {
         RED.nodes.createNode(this, config);
         var node = this;
         node.controller = RED.nodes.getNode(config.controller);
-        this.on('input', function(msg) {
+        this.on('input', function(msg, send, done) {
             _bridge = false
             resolveTyped(RED, config.method, config.methodType, node, msg)
             .then((r) => {
@@ -29,15 +29,21 @@ module.exports =  function(RED) {
                 _code = r
             resolveTyped(RED, config.deviceid, config.deviceidType, node, msg)
             .then((r) => {
+                try {
                 _deviceid = r
-                _id = _deviceid.toString().split('-')[0]
+                _id = BigInt(_deviceid.toString().split('-')[0])
                 _ep = _deviceid.toString().split('-')[1] //|| 1 //Default to EP 1
+                }
+                catch {
+                    done(`Invalid Device ID or Endpoint ${r}`)
+                }
             resolveTyped(RED, config.label, config.labelType, node, msg)
             .then((r) => {
                _label = r
-            console.log(_method, _code, _deviceid, _label)
+            node.debug(_method, _code, _deviceid, _label)
             // Now that we've resolved all those promises lets actually DO something
             node.status({fill:"blue",shape:"dot",text:"processing"});
+            try {
             switch (_method) {
                 case 'commissionDevice':
                     let longDiscriminator = undefined
@@ -83,7 +89,7 @@ module.exports =  function(RED) {
                     }).catch((error) => {node.error(error); node.status({})})
                     break;
                 case 'decommissionDevice':
-                    node.controller.commissioningController.connectNode(BigInt(_id))
+                    node.controller.commissioningController.connectNode(_id)
                     .then((conn) => {
                         info = conn.getRootClusterClient(BasicInformationCluster)
                         info.getNodeLabelAttribute()
@@ -101,7 +107,7 @@ module.exports =  function(RED) {
                     }).catch((error) => {node.error(error); node.status({})})
                     break;
                 case 'openCommissioning':
-                    node.controller.commissioningController.connectNode(BigInt(_id))
+                    node.controller.commissioningController.connectNode(_id)
                     .then((conn) => {
                         conn.openEnhancedCommissioningWindow()
                         .then((codes => {
@@ -112,7 +118,7 @@ module.exports =  function(RED) {
                     }).catch((error) => {node.error(error); node.status({})})
                     break;
                 case 'getDevice':
-                    node.controller.commissioningController.connectNode(BigInt(_id))
+                    node.controller.commissioningController.connectNode(_id)
                         .then((conn) => {
                             if (typeof(msg.payload) != 'object') {msg.payload = {}}
                             msg.payload.id = _id
@@ -154,7 +160,7 @@ module.exports =  function(RED) {
                     node.status({})
                     break
                 case 'renameDevice':
-                    node.controller.commissioningController.connectNode(BigInt(_id))
+                    node.controller.commissioningController.connectNode(_id)
                         .then((conn) => {
                             let endpoints = conn.getDevices()
                             if (endpoints[0].deviceType == 14) { //Bridge
@@ -189,7 +195,10 @@ module.exports =  function(RED) {
                     node.error(`Unknown Method ${_method}`)
                     break;
             }
-            
+            }
+            catch (error) {
+                done(error)
+            }
         })
         })
         })
