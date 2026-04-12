@@ -20,10 +20,13 @@
         },
         paletteLabel: "Write Attribute",
         label: function() {
-            let defaultName = `${this.deviceName} | ${this.attr}`
-            return this.name || defaultName || "Read";
+            if (this.name) return this.name
+            if (isRealValue(this.deviceName) && isRealValue(this.attr))
+                return this.deviceName + ' | ' + this.attr
+            return "Write Attribute"
         },
         oneditprepare: function() {
+            var _initDone = false
             $('#node-input-data').typedInput({
                 types: ['str', 'num', 'msg', 'flow', 'global', 'jsonata', 'env', {value: 'null', label: 'null', hasValue: false}],
                 typeField: $('#node-input-dataType')
@@ -43,11 +46,14 @@
             $('#refresh-clusters').on("click", getClusters);
             $('#refresh-attr').on("click", function() { getAttributes(writable=true); } );
             $('#refresh-sample').on("click", getAttributeOpts);
-            $('node-input-attribute').on("changed", getAttributeOpts);
+            $('#node-input-controller').on("change", function() { if (_initDone) getDevices() });
+            $('#node-input-device').on("change", function() { if (_initDone) getClusters() });
+            $('#node-input-cluster').on("change", function() { if (_initDone) getAttributes(writable=true) });
+            $('#node-input-attr').on("change", function() { if (_initDone) getAttributeOpts() });
+            setTimeout(function() { _initDone = true }, 500);
         },
         oneditsave: function() {
-            let el = document.getElementById('node-input-device');
-            this.deviceName = el.options[el.selectedIndex].innerHTML;
+            this.deviceName = getSelectedText('node-input-device')
         }
     });
 </script>

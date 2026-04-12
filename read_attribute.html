@@ -18,10 +18,13 @@
         },
         paletteLabel: "Read Attribute",
         label: function() {
-            let defaultName = `${this.deviceName} | ${this.attr}`
-            return this.name || defaultName || "Read";
+            if (this.name) return this.name
+            if (isRealValue(this.deviceName) && isRealValue(this.attr))
+                return this.deviceName + ' | ' + this.attr
+            return "Read Attribute"
         },
         oneditprepare: function() {
+            var _initDone = false
             if (this.device.length != 0){
                 setDevice(this.controller, this.device)
             } 
@@ -34,11 +37,14 @@
             $('#refresh-devices').on("click", getDevices);
             $('#refresh-clusters').on("click", getClusters);
             $('#refresh-attr').on("click", function() { getAttributes(writable=false); } );
+            $('#node-input-controller').on("change", function() { if (_initDone) getDevices() });
+            $('#node-input-device').on("change", function() { if (_initDone) getClusters() });
+            $('#node-input-cluster').on("change", function() { if (_initDone) getAttributes(writable=false) });
+            setTimeout(function() { _initDone = true }, 500);
 
         },
         oneditsave: function() {
-            let el = document.getElementById('node-input-device');
-            this.deviceName = el.options[el.selectedIndex].innerHTML;
+            this.deviceName = getSelectedText('node-input-device')
         }
     });
 </script>
