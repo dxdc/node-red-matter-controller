@@ -1,14 +1,6 @@
-const { Environment, Logger, singleton, StorageService, Time } = require( "@matter/main");
-const { BasicInformationCluster, DescriptorCluster, GeneralCommissioning, OnOff } = require( "@matter/main/clusters");
-const { nodeId } = require("@matter/main/model");
-const { ClusterClientObj, ControllerCommissioningFlowOptions } = require("@matter/main/protocol") 
-const { ManualPairingCodeCodec, QrPairingCodeCodec, NodeId } = require("@matter/main/types")
+const { BasicInformationCluster } = require("@matter/main/clusters");
+const { ManualPairingCodeCodec, QrPairingCodeCodec } = require("@matter/main/types")
 const {resolveTyped} = require('./utils')
-
-
-//Some parts of the controller are still in the legacy packages
-var { CommissioningController, NodeCommissioningOptions } =  require("@project-chip/matter.js")
-var { NodeStates } =  require("@project-chip/matter.js/device")
 
 
 module.exports =  function(RED) {
@@ -17,7 +9,12 @@ module.exports =  function(RED) {
         var node = this;
         node.controller = RED.nodes.getNode(config.controller);
         this.on('input', function(msg, send, done) {
-            _bridge = false
+            if (!node.controller || !node.controller.commissioningController) {
+                done('Matter controller not available — check that the controller is configured and deployed')
+                return
+            }
+            let _bridge = false
+            let _method, _code, _deviceid, _id, _ep, _label
             resolveTyped(RED, config.method, config.methodType, node, msg)
             .then((r) => {
                 _method = r
@@ -76,7 +73,7 @@ module.exports =  function(RED) {
                     node.controller.commissioningController.commissionNode(options).then((nodeId) => {
                         node.controller.commissioningController.connectNode(nodeId)
                         .then((conn) => {
-                            info = conn.getRootClusterClient(BasicInformationCluster)
+                            let info = conn.getRootClusterClient(BasicInformationCluster)
                             info.setNodeLabelAttribute(_label).then(() => {
                                 node.log(`Commissioned ${_label} as nodeId ${nodeId}`)
                                 if (typeof(msg.payload) != 'object') {msg.payload = {}}
@@ -91,20 +88,25 @@ module.exports =  function(RED) {
                 case 'decommissionDevice':
                     node.controller.commissioningController.connectNode(_id)
                     .then((conn) => {
-                        info = conn.getRootClusterClient(BasicInformationCluster)
+                        let info = conn.getRootClusterClient(BasicInformationCluster)
                         info.getNodeLabelAttribute()
                         .then((label) => {
-                            RED.comms.publish("matter_notify", `Remember to remove any events and subscriptons for ${label}`);
-                        }).catch((error) => {node.error(error); node.status({})})
+                            RED.comms.publish("matter_notify", `Remember to remove any events and subscriptions for ${label}`);
+                        })
+                        .catch((error) => {node.warn(`Could not get device label: ${error.message}`)})
                         .then(() =>{
-                            conn.decommission()
+                            return conn.decommission()
                             .then(() => {
                                 msg.payload = "Device Removed"
                                 node.send(msg)
                                 node.status({})
                             })
-                        }).catch((error) => {node.error(error); node.status({})})
-                    }).catch((error) => {node.error(error); node.status({})})
+                            .catch((error) => {
+                                node.error(`Decommission failed: ${error.message}`)
+                                node.status({fill:"red",shape:"dot",text:"decommission failed"})
+                            })
+                        })
+                    }).catch((error) => {node.error(`Could not connect to device: ${error.message}`); node.status({fill:"red",shape:"dot",text:"connection failed"})})
                     break;
                 case 'openCommissioning':
                     node.controller.commissioningController.connectNode(_id)
@@ -122,25 +124,25 @@ module.exports =  function(RED) {
                         .then((conn) => {
                             if (typeof(msg.payload) != 'object') {msg.payload = {}}
                             msg.payload.id = _id
-                            info = conn.getRootClusterClient(BasicInformationCluster)
-                            info.getNodeLabelAttribute()
+                            let info = conn.getRootClusterClient(BasicInformationCluster)
+                            return info.getNodeLabelAttribute()
                             .then((label) => {
                                 msg.payload.label = label
                             }).catch((error) => {node.error(error); node.status({})})
                             .then(() => {
-                                info.getProductNameAttribute()
+                                return info.getProductNameAttribute()
                                 .then((name) => {
                                     msg.payload.productName = name
                                 })
                             }).catch((error) => {node.error(error); node.status({})})
                             .then(() => {
-                                info.getVendorNameAttribute()
+                                return info.getVendorNameAttribute()
                                 .then((vendor) => {
                                     msg.payload.vendorName = vendor
                                 })
                             }).catch((error) => {node.error(error); node.status({})})
                             .then(() => {
-                                info.getSerialNumberAttribute()
+                                return info.getSerialNumberAttribute()
                                 .then((serial) => {
                                     msg.payload.serialNumber = serial
                                 })
@@ -159,13 +161,56 @@ module.exports =  function(RED) {
                     node.send(msg)
                     node.status({})
                     break
+                case 'listEndpoints':
+                    node.controller.commissioningController.connectNode(_id)
+                        .then((conn) => {
+                            let endpoints = conn.getDevices()
+                            let result = endpoints.map(ep => ({
+                                endpoint: ep.number,
+                                deviceType: ep.deviceType,
+                                name: ep.name,
+                                clusters: ep.getAllClusterClients().map(c => ({
+                                    id: c.id,
+                                    name: c.name
+                                }))
+                            }))
+                            msg.payload = result
+                            node.send(msg)
+                            node.status({})
+                        })
+                        .catch((error) => {node.error(error); node.status({})})
+                    break
+                case 'describe':
+                    node.controller.commissioningController.connectNode(_id)
+                        .then((conn) => {
+                            let endpoints = conn.getDevices()
+                            let result = endpoints.map(ep => {
+                                let clusterClients = ep.getAllClusterClients()
+                                return {
+                                    endpoint: ep.number,
+                                    deviceType: ep.deviceType,
+                                    name: ep.name,
+                                    clusters: clusterClients.map(c => ({
+                                        id: c.id,
+                                        name: c.name,
+                                        attributes: Object.keys(c.attributes),
+                                        commands: Object.keys(c.commands)
+                                    }))
+                                }
+                            })
+                            msg.payload = result
+                            node.send(msg)
+                            node.status({})
+                        })
+                        .catch((error) => {node.error(error); node.status({})})
+                    break
                 case 'renameDevice':
                     node.controller.commissioningController.connectNode(_id)
                         .then((conn) => {
                             let endpoints = conn.getDevices()
                             if (endpoints[0].deviceType == 14) { //Bridge
-                                ep = conn.getDeviceById(Number(_ep))
-                                bridgedinfo = ep.getClusterClientById(57)
+                                let ep = conn.getDeviceById(Number(_ep))
+                                let bridgedinfo = ep.getClusterClientById(57)
                                 bridgedinfo.setNodeLabelAttribute(_label).then(() => {
                                     node.log(`Renamed ${_id} as  ${_label}`)
                                     if (typeof(msg.payload) != 'object') {msg.payload = {}}
@@ -176,7 +221,7 @@ module.exports =  function(RED) {
                                 })
                                 .catch((error) => {node.error(error); node.status({})})
                             } else { //Not Bridge
-                                info = conn.getRootClusterClient(BasicInformationCluster)
+                                let info = conn.getRootClusterClient(BasicInformationCluster)
                                 info.setNodeLabelAttribute(_label).then(() => {
                                 node.log(`Renamed ${_id} as ${_label}`)
                                 if (typeof(msg.payload) != 'object') {msg.payload = {}}
