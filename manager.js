@@ -6,14 +6,13 @@ const {resolveTyped} = require('./utils')
 module.exports =  function(RED) {
     function MatterManager(config) {
         RED.nodes.createNode(this, config);
-        var node = this;
+        const node = this;
         node.controller = RED.nodes.getNode(config.controller);
         this.on('input', function(msg, send, done) {
             if (!node.controller || !node.controller.commissioningController) {
                 done('Matter controller not available — check that the controller is configured and deployed')
                 return
             }
-            let _bridge = false
             let _method, _code, _deviceid, _id, _ep, _label
             resolveTyped(RED, config.method, config.methodType, node, msg)
             .then((r) => {
@@ -42,9 +41,7 @@ module.exports =  function(RED) {
             node.status({fill:"blue",shape:"dot",text:"processing"});
             try {
             switch (_method) {
-                case 'commissionDevice':
-                    let longDiscriminator = undefined
-                    let shortDiscriminator = undefined
+                case 'commissionDevice': {
                     let re = new RegExp("MT:.*")
                     let pcData
                     if (re.test(_code)) {
@@ -61,7 +58,7 @@ module.exports =  function(RED) {
                             identifierData:
                                 pcData.discriminator !== undefined
                                 ? { longDiscriminator : pcData.discriminator }
-                                : shortDiscriminator !== undefined
+                                : pcData.shortDiscriminator !== undefined
                                   ? { shortDiscriminator :  pcData.shortDiscriminator }
                                   : {},
                             discoveryCapabilities: {
@@ -85,6 +82,7 @@ module.exports =  function(RED) {
                         }).catch((error) => {node.error(error); node.status({})})
                     }).catch((error) => {node.error(error); node.status({})})
                     break;
+                }
                 case 'decommissionDevice':
                     node.controller.commissioningController.connectNode(_id)
                     .then((conn) => {
@@ -155,12 +153,13 @@ module.exports =  function(RED) {
                         })
                         .catch((error) => {node.error(error); node.status({})})
                     break
-                case 'listDevices':
+                case 'listDevices': {
                     let nodeIds = node.controller.commissioningController.getCommissionedNodes()
                     msg.payload = nodeIds
                     node.send(msg)
                     node.status({})
                     break
+                }
                 case 'listEndpoints':
                     node.controller.commissioningController.connectNode(_id)
                         .then((conn) => {

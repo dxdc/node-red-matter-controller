@@ -5,20 +5,20 @@ const {cap} = require('./utils')
 module.exports =  function(RED) {
     function MatterReadAttr(config) {
         RED.nodes.createNode(this, config);
-        var node = this;
+        const node = this;
         node.controller = RED.nodes.getNode(config.controller);
 
         // Parse static config if provided; leave undefined for dynamic msg input
-        var hasStaticDevice = config.device && config.device !== "__SELECT__"
+        const hasStaticDevice = config.device && config.device !== "__SELECT__"
         if (hasStaticDevice) {
             node._id = BigInt(config.device.split('-')[0])
             node._ep = config.device.split('-')[1] || 1
         }
-        var hasStaticCluster = config.cluster && config.cluster !== "__SELECT__"
+        const hasStaticCluster = config.cluster && config.cluster !== "__SELECT__"
         if (hasStaticCluster) {
             node.cluster = Number(config.cluster)
         }
-        var hasStaticAttr = config.attr && config.attr !== "__SELECT__"
+        const hasStaticAttr = config.attr && config.attr !== "__SELECT__"
         if (hasStaticAttr) {
             node.attr = cap(config.attr)
         }
@@ -30,7 +30,7 @@ module.exports =  function(RED) {
             }
 
             // Resolve device: static config or msg.device
-            var deviceId, ep
+            let deviceId, ep
             if (hasStaticDevice) {
                 deviceId = node._id
                 ep = node._ep
@@ -43,7 +43,7 @@ module.exports =  function(RED) {
             }
 
             // Resolve cluster
-            var cluster
+            let cluster
             if (hasStaticCluster) {
                 cluster = node.cluster
             } else if (msg.cluster != null) {
@@ -54,7 +54,7 @@ module.exports =  function(RED) {
             }
 
             // Resolve attribute
-            var attr
+            let attr
             if (hasStaticAttr) {
                 attr = node.attr
             } else if (msg.attr) {

@@ -5,7 +5,7 @@ const {cap} = require('./utils')
 module.exports =  function(RED) {
     function MatterSubscribe(config) {
         RED.nodes.createNode(this, config);
-        var node = this;
+        const node = this;
         node.controller = RED.nodes.getNode(config.controller);
         if (!node.controller) {
             node.error('Matter controller not available — check that the controller is configured and deployed')
