@@ -7,29 +7,81 @@ module.exports =  function(RED) {
         RED.nodes.createNode(this, config);
         var node = this;
         node.controller = RED.nodes.getNode(config.controller);
-        if (!config.device || config.device === "__SELECT__") {
-            node.warn("Device not configured")
-            return
+
+        // Parse static config if provided; leave undefined for dynamic msg input
+        var hasStaticDevice = config.device && config.device !== "__SELECT__"
+        if (hasStaticDevice) {
+            node._id = BigInt(config.device.split('-')[0])
+            node._ep = config.device.split('-')[1] || 1
         }
-        node._id = BigInt(config.device.split('-')[0])
-        node._ep = config.device.split('-')[1] || 1
-        node.cluster = Number(config.cluster)
-        node.attr = cap(config.attr)
+        var hasStaticCluster = config.cluster && config.cluster !== "__SELECT__"
+        if (hasStaticCluster) {
+            node.cluster = Number(config.cluster)
+        }
+        var hasStaticAttr = config.attr && config.attr !== "__SELECT__"
+        if (hasStaticAttr) {
+            node.attr = cap(config.attr)
+        }
+
         this.on('input', function(msg) {
             if (!node.controller || !node.controller.commissioningController) {
                 node.error('Matter controller not available — check that the controller is configured and deployed')
                 return
             }
-            resolveTyped(RED, config.data, config.dataType, node, msg)
+
+            // Resolve device: static config or msg.device
+            var deviceId, ep
+            if (hasStaticDevice) {
+                deviceId = node._id
+                ep = node._ep
+            } else if (msg.device && msg.device !== "__SELECT__") {
+                deviceId = BigInt(String(msg.device).split('-')[0])
+                ep = String(msg.device).split('-')[1] || 1
+            } else {
+                node.error('Device not configured — set in editor or pass msg.device')
+                return
+            }
+
+            // Resolve cluster
+            var cluster
+            if (hasStaticCluster) {
+                cluster = node.cluster
+            } else if (msg.cluster != null) {
+                cluster = Number(msg.cluster)
+            } else {
+                node.error('Cluster not configured — set in editor or pass msg.cluster')
+                return
+            }
+
+            // Resolve attribute
+            var attr
+            if (hasStaticAttr) {
+                attr = node.attr
+            } else if (msg.attr) {
+                attr = cap(msg.attr)
+            } else {
+                node.error('Attribute not configured — set in editor or pass msg.attr')
+                return
+            }
+
+            // Resolve data: static config via resolveTyped, or fall back to msg.payload
+            var dataPromise
+            if (config.data || config.dataType) {
+                dataPromise = resolveTyped(RED, config.data, config.dataType, node, msg)
+            } else {
+                dataPromise = Promise.resolve(msg.payload)
+            }
+
+            dataPromise
             .then((_data) => {
-                node.controller.commissioningController.connectNode(node._id).then((conn) => {
-                    const ep = conn.getDeviceById(Number(node._ep))
-                    const clc = ep.getClusterClientById(Number(node.cluster))               
+                node.controller.commissioningController.connectNode(deviceId).then((conn) => {
+                    const epObj = conn.getDeviceById(Number(ep))
+                    const clc = epObj.getClusterClientById(cluster)
                     try {
-                        const methodName = `set${node.attr}Attribute`
+                        const methodName = `set${attr}Attribute`
                         let command = clc[methodName]
                         if (typeof command !== 'function') {
-                            node.error(`Attribute setter '${methodName}' not found on cluster ${node.cluster}`)
+                            node.error(`Attribute setter '${methodName}' not found on cluster ${cluster}`)
                             return
                         }
                         command.call(clc, _data)
@@ -49,7 +101,7 @@ module.exports =  function(RED) {
                 node.error(e)
             })
         })
-    }   
+    }
 
     RED.nodes.registerType("matterwriteattr",MatterWriteAttr);
 
