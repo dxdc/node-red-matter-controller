@@ -20,10 +20,13 @@
         },
         paletteLabel: "Command",
         label: function() {
-            let defaultName = `${this.deviceName} | ${this.command}`
-            return this.name || defaultName || "Command";
+            if (this.name) return this.name
+            if (isRealValue(this.deviceName) && isRealValue(this.command))
+                return this.deviceName + ' | ' + this.command
+            return "Command"
         },
         oneditprepare: function() {
+            var _initDone = false
             $('#node-input-data').typedInput({
                 types: ['json', 'msg', 'flow', 'global', 'jsonata', 'env'],
                 typeField: $('#node-input-dataType')
@@ -41,11 +44,14 @@
             $('#refresh-clusters').on("click", getClusters);
             $('#refresh-commands').on("click", getCommands);
             $('#refresh-sample').on("click", getCommandOpts);
-            $('node-input-command').on("changed", getCommandOpts);
+            $('#node-input-controller').on("change", function() { if (_initDone) getDevices() });
+            $('#node-input-device').on("change", function() { if (_initDone) getClusters() });
+            $('#node-input-cluster').on("change", function() { if (_initDone) getCommands() });
+            $('#node-input-command').on("change", function() { if (_initDone) getCommandOpts() });
+            setTimeout(function() { _initDone = true }, 500);
         },
         oneditsave: function() {
-            let el = document.getElementById('node-input-device');
-            this.deviceName = el.options[el.selectedIndex].innerHTML;
+            this.deviceName = getSelectedText('node-input-device')
         }
     });
 </script>
