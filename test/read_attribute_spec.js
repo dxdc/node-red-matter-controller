@@ -37,20 +37,25 @@ describe('matterreadattr node', function () {
         });
     });
 
-    it('should warn when device is __SELECT__', function (done) {
+    it('should error on input when device is __SELECT__ and msg.device missing', function (done) {
         var flow = [
             { id: 'n1', type: 'matterreadattr', name: 'test-read',
               controller: 'c1', device: '__SELECT__', cluster: '6', attr: 'onOff' },
             { id: 'c1', type: 'mattercontroller', name: 'ctrl' }
         ];
         helper.load([mockController, readAttrNode], flow, function () {
+            var c1 = helper.getNode('c1');
+            c1.commissioningController = mocks.mockCommissioningController();
             var n1 = helper.getNode('n1');
-            try {
-                n1.warn.should.be.calledWithExactly('Device not configured');
-                done();
-            } catch (err) {
-                done(err);
-            }
+            n1.receive({ payload: {} });
+            n1.on('call:error', function (call) {
+                try {
+                    call.args[0].should.match(/Device not configured/);
+                    done();
+                } catch (err) {
+                    done(err);
+                }
+            });
         });
     });
 
@@ -127,6 +132,64 @@ describe('matterreadattr node', function () {
             n1.on('call:error', function (call) {
                 try {
                     call.args[0].should.match(/not found on cluster/);
+                    done();
+                } catch (err) {
+                    done(err);
+                }
+            });
+        });
+    });
+
+    // --- Dynamic msg input tests ---
+
+    it('should use msg.device, msg.cluster, msg.attr when config is blank', function (done) {
+        var flow = [
+            { id: 'n1', type: 'matterreadattr', name: 'dynamic-read',
+              controller: 'c1', device: '', cluster: '', attr: '',
+              wires: [['out']] },
+            { id: 'c1', type: 'mattercontroller', name: 'ctrl' },
+            { id: 'out', type: 'helper' }
+        ];
+        helper.load([mockController, readAttrNode], flow, function () {
+            var c1 = helper.getNode('c1');
+            var clc = mocks.mockClusterClient({
+                getOnOffAttribute: sinon.stub().resolves(true)
+            });
+            var ep = mocks.mockEndpoint(clc);
+            var conn = mocks.mockConnection({ getDeviceById: sinon.stub().returns(ep) });
+            c1.commissioningController = mocks.mockCommissioningController({
+                connectNode: sinon.stub().resolves(conn)
+            });
+
+            var out = helper.getNode('out');
+            out.on('input', function (msg) {
+                try {
+                    msg.should.have.property('payload', true);
+                    done();
+                } catch (err) {
+                    done(err);
+                }
+            });
+
+            var n1 = helper.getNode('n1');
+            n1.receive({ device: '1234-1', cluster: 6, attr: 'onOff' });
+        });
+    });
+
+    it('should error when msg.attr is also missing', function (done) {
+        var flow = [
+            { id: 'n1', type: 'matterreadattr', name: 'dynamic-read',
+              controller: 'c1', device: '', cluster: '', attr: '' },
+            { id: 'c1', type: 'mattercontroller', name: 'ctrl' }
+        ];
+        helper.load([mockController, readAttrNode], flow, function () {
+            var c1 = helper.getNode('c1');
+            c1.commissioningController = mocks.mockCommissioningController();
+            var n1 = helper.getNode('n1');
+            n1.receive({ device: '1234-1', cluster: 6 });
+            n1.on('call:error', function (call) {
+                try {
+                    call.args[0].should.match(/Attribute not configured/);
                     done();
                 } catch (err) {
                     done(err);
