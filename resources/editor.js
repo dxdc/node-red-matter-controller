@@ -1,8 +1,8 @@
 
-var ctrl_node = undefined
-var device = undefined
-var cluster = undefined
-var url = undefined
+let ctrl_node = undefined
+let device = undefined
+let cluster = undefined
+let url = undefined
 
 const simpleClusters = [
     "3", // Identify
@@ -531,14 +531,14 @@ function getDevices() {
     if (!(ctrl_node == undefined || ctrl_node == '_ADD_')){
         url =`_mattercontroller/${ctrl_node}/devices`
         $.get(url, function(r) {
-            var devices = document.getElementById("node-input-device");
+            let devices = document.getElementById("node-input-device");
             removeOptions(devices)
-            var option = document.createElement("option");
+            let option = document.createElement("option");
             option.text = '--SELECT--'
             option.value = '__SELECT__'
             devices.add(option)
             Object.keys(r).forEach(d => {
-                var option = document.createElement("option");
+                let option = document.createElement("option");
                 option.text = r[d]
                 option.value = d
                 option.id = d
@@ -553,14 +553,14 @@ function setDevice(ctrl_node, device) {
     if (ctrl_node != '_ADD_'){
         url =`_mattercontroller/${ctrl_node}/devices`
         $.get(url, function(r) {
-            var devices = document.getElementById("node-input-device");
+            let devices = document.getElementById("node-input-device");
             removeOptions(devices)
-            var option = document.createElement("option");
+            let option = document.createElement("option");
             option.text = '--SELECT--'
             option.value = '__SELECT__'
             devices.add(option)
             Object.keys(r).forEach(d => {
-                var option = document.createElement("option");
+                let option = document.createElement("option");
                 option.text = r[d]
                 option.value = d
                 option.id = d
@@ -585,23 +585,23 @@ function getClusters(){
     if ((ctrl_node != '_ADD_' && ctrl_node != undefined) && (device != undefined && device != '__SELECT__')){
         url =`_mattercontroller/${ctrl_node}/device/${device}/clusters`
         $.get(url, function(r) {
-            var clusters = document.getElementById("node-input-cluster");
+            let clusters = document.getElementById("node-input-cluster");
             removeOptions(clusters)
-            var option = document.createElement("option");
+            let option = document.createElement("option");
             option.text = '--SELECT--'
             option.value = '__SELECT__'
             clusters.add(option)
             Object.keys(r).forEach(d => {
                 if (simpleMode.checked){
                     if (simpleClusters.includes(d)) {
-                        var option = document.createElement("option");
+                        let option = document.createElement("option");
                         option.text = r[d]
                         option.value = d
                         option.id = d
                         clusters.add(option);
                     }
                 } else {
-                    var option = document.createElement("option");
+                    let option = document.createElement("option");
                     option.text = r[d]
                     option.value = d
                     option.id = d
@@ -618,16 +618,16 @@ function setCluster(ctrl_node, device, cluster){
     if ((ctrl_node != '_ADD_' && ctrl_node != undefined) && (device != undefined && device != '__SELECT__')){
         url =`_mattercontroller/${ctrl_node}/device/${device}/clusters`
         $.get(url, function(r) {
-            var clusters = document.getElementById("node-input-cluster");
+            let clusters = document.getElementById("node-input-cluster");
             removeOptions(clusters)
-            var option = document.createElement("option");
+            let option = document.createElement("option");
             option.text = '--SELECT--'
             option.value = '__SELECT__'
             clusters.add(option)
             Object.keys(r).forEach(d => {
                 if (simpleMode.checked){
                     if (simpleClusters.includes(d)) {
-                        var option = document.createElement("option");
+                        let option = document.createElement("option");
                         option.text = r[d]
                         option.value = d
                         option.id = d
@@ -635,7 +635,7 @@ function setCluster(ctrl_node, device, cluster){
                         clusters.add(option);
                     }
                 } else {
-                    var option = document.createElement("option");
+                    let option = document.createElement("option");
                     option.text = r[d]
                     option.value = d
                     option.id = d
@@ -657,11 +657,11 @@ function getCommands(){
     if ((ctrl_node != '_ADD_' && ctrl_node != undefined) && (device != undefined && device != '__SELECT__') && (cluster != undefined && cluster != '__SELECT__')){
         url =`_mattercontroller/${ctrl_node}/device/${device}/cluster/${cluster}/commands`
         $.get(url, function(r) {
-            var commands = document.getElementById("node-input-command");
+            let commands = document.getElementById("node-input-command");
             removeOptions(commands)
             let filtered = r.filter(d => !simpleMode.checked || (simpleCommands[cluster] && simpleCommands[cluster].includes(d)))
             if (filtered.length === 0) {
-                var option = document.createElement("option");
+                let option = document.createElement("option");
                 option.text = 'No commands available'
                 option.value = '__SELECT__'
                 option.disabled = true
@@ -669,12 +669,12 @@ function getCommands(){
                 commands.add(option)
                 return
             }
-            var option = document.createElement("option");
+            let option = document.createElement("option");
             option.text = '--SELECT--'
             option.value = '__SELECT__'
             commands.add(option)
             filtered.forEach(d => {
-                var option = document.createElement("option");
+                let option = document.createElement("option");
                 option.text = d
                 option.value = d
                 option.id = d
@@ -689,16 +689,16 @@ function setCommand(ctrl_node, device, cluster, command){
     if ((ctrl_node != '_ADD_' && ctrl_node != undefined) && (device != undefined && device != '__SELECT__') && (cluster != undefined && cluster != '__SELECT__')){
         url =`_mattercontroller/${ctrl_node}/device/${device}/cluster/${cluster}/commands`
         $.get(url, function(r) {
-            var commands = document.getElementById("node-input-command");
+            let commands = document.getElementById("node-input-command");
             removeOptions(commands)
-            var option = document.createElement("option");
+            let option = document.createElement("option");
             option.text = '--SELECT--'
             option.value = '__SELECT__'
             commands.add(option)
             r.forEach(d => {
                 if (simpleMode.checked){
                     if (simpleCommands[cluster] && simpleCommands[cluster].includes(d)) {
-                        var option = document.createElement("option");
+                        let option = document.createElement("option");
                         option.text = d
                         option.value = d
                         option.id = d
@@ -706,7 +706,7 @@ function setCommand(ctrl_node, device, cluster, command){
                         commands.add(option);
                     }
                 } else {
-                    var option = document.createElement("option");
+                    let option = document.createElement("option");
                     option.text = d
                     option.value = d
                     option.id = d
@@ -733,11 +733,11 @@ function getAttributes(writable=false){
             url =`_mattercontroller/${ctrl_node}/device/${device}/cluster/${cluster}/attributes`
         }
         $.get(url, function(r) {
-            var attrs = document.getElementById("node-input-attr");
+            let attrs = document.getElementById("node-input-attr");
             removeOptions(attrs)
             let filtered = r.filter(d => !simpleMode.checked || (simpleAttributes[cluster] && simpleAttributes[cluster].includes(d)))
             if (filtered.length === 0) {
-                var option = document.createElement("option");
+                let option = document.createElement("option");
                 option.text = writable ? 'No writable attributes available' : 'No attributes available'
                 option.value = '__SELECT__'
                 option.disabled = true
@@ -745,12 +745,12 @@ function getAttributes(writable=false){
                 attrs.add(option)
                 return
             }
-            var option = document.createElement("option");
+            let option = document.createElement("option");
             option.text = '--SELECT--'
             option.value = '__SELECT__'
             attrs.add(option)
             filtered.forEach(d => {
-                var option = document.createElement("option");
+                let option = document.createElement("option");
                 option.text = d
                 option.value = d
                 option.id = d
@@ -769,16 +769,16 @@ function setAttribute(ctrl_node, device, cluster, attr, writable=false){
             url =`_mattercontroller/${ctrl_node}/device/${device}/cluster/${cluster}/attributes`
         }
         $.get(url, function(r) {
-            var attrs = document.getElementById("node-input-attr");
+            let attrs = document.getElementById("node-input-attr");
             removeOptions(attrs)
-            var option = document.createElement("option");
+            let option = document.createElement("option");
             option.text = '--SELECT--'
             option.value = '__SELECT__'
             attrs.add(option)
             r.forEach(d => {
                 if (simpleMode.checked){
                     if (simpleAttributes[cluster] && simpleAttributes[cluster].includes(d)) {
-                        var option = document.createElement("option");
+                        let option = document.createElement("option");
                         option.text = d
                         option.value = d
                         option.id = d
@@ -786,7 +786,7 @@ function setAttribute(ctrl_node, device, cluster, attr, writable=false){
                         attrs.add(option);
                     }
                 } else {
-                    var option = document.createElement("option");
+                    let option = document.createElement("option");
                     option.text = d
                     option.value = d
                     option.id = d
@@ -800,20 +800,20 @@ function setAttribute(ctrl_node, device, cluster, attr, writable=false){
 }
 
 function clearSelect(elementId) {
-    var el = document.getElementById(elementId);
+    let el = document.getElementById(elementId);
     if (el) removeOptions(el)
 }
 
 function resetSelect(elementId) {
-    var el = document.getElementById(elementId);
+    let el = document.getElementById(elementId);
     if (!el) return
     // Detach and reattach jQuery change handlers to prevent spurious
     // cascading when we programmatically reset the select value.
-    var events = $._data(el, 'events')
-    var changeHandlers = events && events.change ? events.change.slice() : []
+    let events = $._data(el, 'events')
+    let changeHandlers = events && events.change ? events.change.slice() : []
     $(el).off('change')
     removeOptions(el)
-    var option = document.createElement("option");
+    let option = document.createElement("option");
     option.text = '--SELECT--'
     option.value = '__SELECT__'
     el.add(option)
@@ -828,10 +828,10 @@ function getEvents(){
     if ((ctrl_node != '_ADD_' && ctrl_node != undefined) && (device != undefined && device != '__SELECT__') && (cluster != undefined && cluster != '__SELECT__')){
         url =`_mattercontroller/${ctrl_node}/device/${device}/cluster/${cluster}/events`
         $.get(url, function(r) {
-            var events = document.getElementById("node-input-event");
+            let events = document.getElementById("node-input-event");
             removeOptions(events)
             if (r.length === 0) {
-                var option = document.createElement("option");
+                let option = document.createElement("option");
                 option.text = 'No events available for this cluster'
                 option.value = '__SELECT__'
                 option.disabled = true
@@ -839,12 +839,12 @@ function getEvents(){
                 events.add(option)
                 return
             }
-            var option = document.createElement("option");
+            let option = document.createElement("option");
             option.text = '--SELECT--'
             option.value = '__SELECT__'
             events.add(option)
             r.forEach(d => {
-                var option = document.createElement("option");
+                let option = document.createElement("option");
                 option.text = d
                 option.value = d
                 option.id = d
@@ -858,10 +858,10 @@ function setEvent(ctrl_node, device, cluster, event){
     if ((ctrl_node != '_ADD_' && ctrl_node != undefined) && (device != undefined && device != '__SELECT__') && (cluster != undefined && cluster != '__SELECT__')){
         url =`_mattercontroller/${ctrl_node}/device/${device}/cluster/${cluster}/events`
         $.get(url, function(r) {
-            var events = document.getElementById("node-input-event");
+            let events = document.getElementById("node-input-event");
             removeOptions(events)
             if (r.length === 0) {
-                var option = document.createElement("option");
+                let option = document.createElement("option");
                 option.text = 'No events available for this cluster'
                 option.value = '__SELECT__'
                 option.disabled = true
@@ -869,12 +869,12 @@ function setEvent(ctrl_node, device, cluster, event){
                 events.add(option)
                 return
             }
-            var option = document.createElement("option");
+            let option = document.createElement("option");
             option.text = '--SELECT--'
             option.value = '__SELECT__'
             events.add(option)
             r.forEach(d => {
-                var option = document.createElement("option");
+                let option = document.createElement("option");
                 option.text = d
                 option.value = d
                 option.id = d
@@ -912,7 +912,7 @@ function getAttributeOpts(){
 
 
 function removeOptions(selectElement) {
-   var i, L = selectElement.options.length - 1;
+   let i, L = selectElement.options.length - 1;
    for(i = L; i >= 0; i--) {
       selectElement.remove(i);
    }
@@ -926,9 +926,9 @@ function isRealValue(v) {
 
 // Helper: get display text from a select element, or "" if placeholder
 function getSelectedText(elementId) {
-    var el = document.getElementById(elementId)
+    let el = document.getElementById(elementId)
     if (!el || el.selectedIndex < 0) return ""
-    var val = el.options[el.selectedIndex].value
+    let val = el.options[el.selectedIndex].value
     if (!isRealValue(val)) return ""
     return el.options[el.selectedIndex].innerHTML
 }

@@ -105,4 +105,4 @@ function resolveTyped(RED, data, dataType, node, msg){
     })
 }
 
-module.exports = {commandOptions, attributeOptions, deCap, cap, resolveTyped}
+module.exports = {commandOptions, attributeOptions, deCap, cap, resolveTyped, listClusters, getCommands, getAttributes}

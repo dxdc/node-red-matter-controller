@@ -15,7 +15,7 @@ let _matterRejectionHandler = null
 module.exports =  function(RED) {
     function MatterController(config) {
         RED.nodes.createNode(this, config);
-        var node = this;
+        const node = this;
         node.started = false
         node.networkInterface = config.networkInterface 
         node.storageLocation = config.storageLocation
